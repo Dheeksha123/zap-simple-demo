@@ -25,10 +25,11 @@ jobs:
         run: |
           npm start > app.log 2>&1 &
           for i in {1..30}; do
-            if curl -fsS http://localhost:3000/health >/dev/null; then
+            if curl -fsS http://127.0.0.1:3000/health >/dev/null; then
               echo "App is ready"
               exit 0
             fi
+            echo "Waiting for app..."
             sleep 2
           done
           echo "App did not start"
@@ -38,9 +39,13 @@ jobs:
       - name: Run OWASP ZAP scan
         continue-on-error: true
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/zap/wrk/:rw" \
+          docker run --rm --network host \
+            -v "$GITHUB_WORKSPACE:/zap/wrk/:rw" \
             owasp/zap2docker-stable \
-            zap-baseline.py -t http://localhost:3000 -r zap-report.html -J zap-report.json -I
+            zap-baseline.py -t http://127.0.0.1:3000 \
+            -r zap-report.html \
+            -J zap-report.json \
+            -I
 
       - name: Upload report
         if: always()
